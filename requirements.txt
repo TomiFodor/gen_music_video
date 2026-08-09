@@ -1,0 +1,7 @@
+faster-whisper
+librosa
+numpy
+matplotlib
+Pillow
+tqdm
+fonttools

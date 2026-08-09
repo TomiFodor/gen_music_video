@@ -1,0 +1,13 @@
+# Folder you specifically wanted to exclude
+old-archive/
+
+# Python virtual environments (only relevant if/when you use one)
+venv/
+.venv/
+
+# Python auto-generated cache (only appears after running scripts)
+__pycache__/
+*.pyc
+
+# Large media/font archives
+*.zip
