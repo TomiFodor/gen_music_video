@@ -34,8 +34,9 @@ sudo apt install ffmpeg
 
 ### Windows:
 ```
-choco install ffmpeg   (or download from https://ffmpeg.org/download.html)
+choco install ffmpeg   
 ```
+(or download from https://ffmpeg.org/download.html)
 
 Check it worked:
 ```
@@ -65,7 +66,7 @@ You should see (venv) appear at the start of your terminal prompt.
 This project uses faster-whisper, which runs on CTranslate2.
 GPU acceleration is NVIDIA-only.
 
-#### VIDIA GPUs:
+#### NVIDIA GPUs:
 Check you have a working NVIDIA driver:
 ```
 nvidia-smi
