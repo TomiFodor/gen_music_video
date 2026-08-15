@@ -131,8 +131,8 @@ h) EDIT PAUSE — open the generated .srt file (same folder, same name as your
 i) Wait while the visualizer renders and the final video is encoded
 
 OUTPUT:
-  <video name>_music_video.mp4 — your finished, YouTube-ready video
-  <video name>.srt — kept in the folder afterward, in case you want to reuse
+  video name_music_video.mp4 — your finished, YouTube-ready video
+  video name.srt — kept in the folder afterward, in case you want to reuse
                       or further edit it later
 
 That's it. Thanks for using my script!
