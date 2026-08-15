@@ -100,16 +100,16 @@ on CPU — the script handles this automatically either way, no action required.
 
 ### 5. Add fonts (OPTIONAL)
 
-Use the folder named "fonts" next to the script, and drop .ttf/.otf files into
+*Use the folder named "fonts" next to the script, and drop .ttf/.otf files into
 it. Several fonts (filtered by active/markers) from Google Fonts have been pre-selected:
   Righteous, Bangers, Permanent Marker, Kalam, Protest, Riot, Lemon, Margarine
 
 To get other fonts:
 
-  a) Go to fonts.google.com, search the name or use the filters, click "Download family"
-  b) Extract the downloaded .zip
-  c) Copy the .ttf file(s) into the "fonts" folder next to this script
-     (skip files like OFL.txt / README.txt — only .ttf/.otf files are needed)
+- a) Go to fonts.google.com, search the name or use the filters, click "Download family"
+- b) Extract the downloaded .zip
+- c) Copy the .ttf file(s) into the "fonts" folder next to this script
+     (skip files like OFL.txt / README.txt — only .ttf/.otf files are needed)*
      
 ### 6. Background types
 
@@ -143,14 +143,18 @@ To exit the venv when done: type 'deactivate', or just close the terminal.
 ## PART 3: USING
 
 a) Open a terminal inside the project folder and activate your venv (see above)
-b) Type: ```python gen_music_video.py "your video.mp4"```
-   (or drag the video file into the terminal after typing the command + a space)
-c) Choose your output resolution (1080p or 720p)
-d) Pick a subtitle font from a random offer — press:
+b) Type:
+```
+python gen_music_video.py "your video.mp4"
+```
+(or drag the video file into the terminal after typing the command + a space)
 
-     1 = use it
-     2 = try another random one
-     3 = pick a specific font from the fonts/ folder by name
+c) Choose your output resolution (1080p or 720p)
+
+d) Pick a subtitle font from a random offer — press:
+- 1 = use it
+- 2 = try another random one
+- 3 = pick a specific font from the fonts/ folder by name
      
 e) Pick a background — an image or a looping video (file dialog opens in
    the video's own folder)
@@ -162,16 +166,14 @@ g) Wait while it extracts audio and transcribes the lyrics
 h) EDIT PAUSE — open the generated .srt file (same folder, same name as your
    video) in any text editor, fix any wrong lyrics, save it, then in the
    terminal press:
-   
-     1 = refresh (re-reads the file — use this after saving your edits)
-     2 = continue (locks in your corrections and moves on)
-     3 = cancel (press 3 again to confirm and abort)
+- 1 = refresh (re-reads the file — use this after saving your edits)
+- 2 = continue (locks in your corrections and moves on)
+- 3 = cancel (press 3 again to confirm and abort)
      
 i) Wait while the visualizer renders and the final video is encoded
 
-### OUTPUT:
-
-- video name_music_video.mp4 — your finished, YouTube-ready video
-- video name.srt — kept in the folder afterward, in case you want to reuse or further edit it later
+### OUTPUT
+`video name_music_video.mp4` — your finished, YouTube-ready video
+`video name.srt` — kept in the folder afterward, in case you want to reuse or further edit it later
 
 That's it. Thanks for using my script!
