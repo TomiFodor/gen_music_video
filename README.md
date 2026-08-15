@@ -123,7 +123,11 @@ b) Type:
 ```
 python gen_music_video.py "your video.mp4"
 ```
-(or drag the video file into the terminal after typing the command + a space)
+
+Or copy/paste the below, and drag/drop your video file in after:
+```
+python gen_music_video.py 
+```
 
 c) Choose your output resolution (1080p or 720p)
 
