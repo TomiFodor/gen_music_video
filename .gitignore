@@ -9,5 +9,8 @@ venv/
 __pycache__/
 *.pyc
 
+# Text editor files
+*.kate-swp
+
 # Large media/font archives
 *.zip
