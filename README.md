@@ -1,6 +1,6 @@
 # How to Use
 
-Quick start guide for making simple videos for music, incorporating hard coded subtitles, a visualizer, and different elements to convert mp3 to mp4 ready for youtube
+*Quick start guide for making simple videos for music, incorporating hard coded subtitles, a visualizer, and different elements to convert mp3 to mp4 ready for youtube*
 
 ## PART 0: PREREQUISITES
 
@@ -17,10 +17,10 @@ python --version
 ```
 
 Confirm the printed version is 3.9 or higher. If not, download it from
-https://www.python.org/downloads/ (Windows users: check "Add Python to PATH"
+https://www.python.org/downloads/ (Windows users: check `Add Python to PATH`
 during install).
 
-ffmpeg must also be installed and on your PATH:
+`ffmpeg` must also be installed and on your PATH:
 
 ### Linux (Fedora):
 ```
@@ -128,11 +128,13 @@ Once set up, you don't need to recreate the venv — just activate it each
 session from inside the project folder:
 
 ### Linux/macOS:
-```source venv/bin/activate
+```
+source venv/bin/activate
 ```
 
 ### Windows (Command Prompt):
-```venv\Scripts\activate.bat
+```
+venv\Scripts\activate.bat
 ```
 
 To exit the venv when done: type 'deactivate', or just close the terminal.
