@@ -7,11 +7,13 @@ Quick start guide for making simple videos for music, incorporating hard coded s
 Python 3.9+ must already be installed and available on your PATH.
 
 ### Linux/macOS:
-```python3 --version
+```
+python3 --version
 ```
 
 ### Windows (Command Prompt):
-```python --version
+```
+python --version
 ```
 
 Confirm the printed version is 3.9 or higher. If not, download it from
@@ -21,19 +23,23 @@ during install).
 ffmpeg must also be installed and on your PATH:
 
 ### Linux (Fedora):
-```sudo dnf install ffmpeg
+```
+sudo dnf install ffmpeg
 ```
 
 Linux (Ubuntu):
-```sudo apt install ffmpeg
+```
+sudo apt install ffmpeg
 ```
 
 ### Windows:
-```choco install ffmpeg   (or download from https://ffmpeg.org/download.html)
+```
+choco install ffmpeg   (or download from https://ffmpeg.org/download.html)
 ```
 
 Check it worked:
-```ffmpeg -version
+```
+ffmpeg -version
 ```
 
 ## PART 1: SETUP
@@ -43,11 +49,13 @@ Check it worked:
 Open a terminal inside this project folder, then run the command for your OS.
 
 #### a) Linux / macOS (bash/zsh):
-```python3 -m venv venv && source venv/bin/activate
+```
+python3 -m venv venv && source venv/bin/activate
 ```
 
 #### b) Windows (Command Prompt):
-```python -m venv venv && venv\Scripts\activate.bat
+```
+python -m venv venv && venv\Scripts\activate.bat
 ```
 
 You should see (venv) appear at the start of your terminal prompt.
@@ -59,10 +67,12 @@ GPU acceleration is NVIDIA-only.
 
 #### VIDIA GPUs:
 Check you have a working NVIDIA driver:
-```nvidia-smi
+```
+nvidia-smi
 ```
 Then install the two GPU support packages:
-```pip install nvidia-cublas-cu12 nvidia-cudnn-cu12
+```
+pip install nvidia-cublas-cu12 nvidia-cudnn-cu12
 ```
 
 #### AMD GPUs:
@@ -75,11 +85,13 @@ NVIDIA-only. No install step needed — just skip this section.
 Skip this step entirely. The script auto-detects and falls back to CPU.
 
 ### 3. Install dependencies
-```pip install -r requirements.txt
+```
+pip install -r requirements.txt
 ```
 
 ### 4. (Optional) Verify GPU is detected
-```python -c "import ctranslate2; print('CUDA devices found:', ctranslate2.get_cuda_device_count())"
+```
+python -c "import ctranslate2; print('CUDA devices found:', ctranslate2.get_cuda_device_count())"
 ```
 
 A number greater than 0 means GPU acceleration is available. 0 means it'll run
@@ -154,7 +166,7 @@ h) EDIT PAUSE — open the generated .srt file (same folder, same name as your
      
 i) Wait while the visualizer renders and the final video is encoded
 
-OUTPUT:
+### OUTPUT:
 
 - video name_music_video.mp4 — your finished, YouTube-ready video
 - video name.srt — kept in the folder afterward, in case you want to reuse or further edit it later
