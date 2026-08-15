@@ -7,10 +7,12 @@ Quick start guide for making simple videos for music, incorporating hard coded s
 Python 3.9+ must already be installed and available on your PATH.
 
 ### Linux/macOS:
-python3 --version
+```python3 --version
+```
 
 ### Windows (Command Prompt):
-python --version
+```python --version
+```
 
 Confirm the printed version is 3.9 or higher. If not, download it from
 https://www.python.org/downloads/ (Windows users: check "Add Python to PATH"
@@ -19,15 +21,20 @@ during install).
 ffmpeg must also be installed and on your PATH:
 
 ### Linux (Fedora):
-sudo dnf install ffmpeg
+```sudo dnf install ffmpeg
+```
 
 Linux (Ubuntu):
-sudo apt install ffmpeg
+```sudo apt install ffmpeg
+```
 
 ### Windows:
-choco install ffmpeg   (or download from https://ffmpeg.org/download.html)
+```choco install ffmpeg   (or download from https://ffmpeg.org/download.html)
+```
 
-Check it worked: ffmpeg -version
+Check it worked:
+```ffmpeg -version
+```
 
 ## PART 1: SETUP
 
@@ -36,10 +43,12 @@ Check it worked: ffmpeg -version
 Open a terminal inside this project folder, then run the command for your OS.
 
 #### a) Linux / macOS (bash/zsh):
-python3 -m venv venv && source venv/bin/activate
+```python3 -m venv venv && source venv/bin/activate
+```
 
 #### b) Windows (Command Prompt):
-python -m venv venv && venv\Scripts\activate.bat
+```python -m venv venv && venv\Scripts\activate.bat
+```
 
 You should see (venv) appear at the start of your terminal prompt.
 
@@ -49,9 +58,12 @@ This project uses faster-whisper, which runs on CTranslate2.
 GPU acceleration is NVIDIA-only.
 
 #### VIDIA GPUs:
-Check you have a working NVIDIA driver: nvidia-smi
+Check you have a working NVIDIA driver:
+```nvidia-smi
+```
 Then install the two GPU support packages:
-pip install nvidia-cublas-cu12 nvidia-cudnn-cu12
+```pip install nvidia-cublas-cu12 nvidia-cudnn-cu12
+```
 
 #### AMD GPUs:
 Not supported. CTranslate2 (the engine behind faster-whisper) has no ROCm/AMD
@@ -63,10 +75,12 @@ NVIDIA-only. No install step needed — just skip this section.
 Skip this step entirely. The script auto-detects and falls back to CPU.
 
 ### 3. Install dependencies
-pip install -r requirements.txt
+```pip install -r requirements.txt
+```
 
 ### 4. (Optional) Verify GPU is detected
-python -c "import ctranslate2; print('CUDA devices found:', ctranslate2.get_cuda_device_count())"
+```python -c "import ctranslate2; print('CUDA devices found:', ctranslate2.get_cuda_device_count())"
+```
 
 A number greater than 0 means GPU acceleration is available. 0 means it'll run
 on CPU — the script handles this automatically either way, no action required.
@@ -78,6 +92,7 @@ it. Several fonts (filtered by active/markers) from Google Fonts have been pre-s
   Righteous, Bangers, Permanent Marker, Kalam, Protest, Riot, Lemon, Margarine
 
 To get other fonts:
+
   a) Go to fonts.google.com, search the name or use the filters, click "Download family"
   b) Extract the downloaded .zip
   c) Copy the .ttf file(s) into the "fonts" folder next to this script
@@ -101,28 +116,25 @@ Once set up, you don't need to recreate the venv — just activate it each
 session from inside the project folder:
 
 ### Linux/macOS:
-source venv/bin/activate
+```source venv/bin/activate
+```
 
 ### Windows (Command Prompt):
-venv\Scripts\activate.bat
+```venv\Scripts\activate.bat
+```
 
 To exit the venv when done: type 'deactivate', or just close the terminal.
 
 ## PART 3: USING
 
 a) Open a terminal inside the project folder and activate your venv (see above)
-
-b) Type: python gen_music_video.py "your video.mp4"
+b) Type: ```python gen_music_video.py "your video.mp4"```
    (or drag the video file into the terminal after typing the command + a space)
-   
 c) Choose your output resolution (1080p or 720p)
-
 d) Pick a subtitle font from a random offer — press:
 
      1 = use it
-     
      2 = try another random one
-     
      3 = pick a specific font from the fonts/ folder by name
      
 e) Pick a background — an image or a looping video (file dialog opens in
@@ -137,18 +149,14 @@ h) EDIT PAUSE — open the generated .srt file (same folder, same name as your
    terminal press:
    
      1 = refresh (re-reads the file — use this after saving your edits)
-     
      2 = continue (locks in your corrections and moves on)
-     
      3 = cancel (press 3 again to confirm and abort)
      
 i) Wait while the visualizer renders and the final video is encoded
 
 OUTPUT:
 
-  video name_music_video.mp4 — your finished, YouTube-ready video
-  
-  video name.srt — kept in the folder afterward, in case you want to reuse
-                      or further edit it later
+- video name_music_video.mp4 — your finished, YouTube-ready video
+- video name.srt — kept in the folder afterward, in case you want to reuse or further edit it later
 
 That's it. Thanks for using my script!
