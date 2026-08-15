@@ -111,27 +111,43 @@ To exit the venv when done: type 'deactivate', or just close the terminal.
 ## PART 3: USING
 
 a) Open a terminal inside the project folder and activate your venv (see above)
+
 b) Type: python gen_music_video.py "your video.mp4"
    (or drag the video file into the terminal after typing the command + a space)
+   
 c) Choose your output resolution (1080p or 720p)
+
 d) Pick a subtitle font from a random offer — press:
+
      1 = use it
+     
      2 = try another random one
+     
      3 = pick a specific font from the fonts/ folder by name
+     
 e) Pick a background — an image or a looping video (file dialog opens in
    the video's own folder)
+   
 f) Choose whether the center circle should use a different image (optional)
+
 g) Wait while it extracts audio and transcribes the lyrics
+
 h) EDIT PAUSE — open the generated .srt file (same folder, same name as your
    video) in any text editor, fix any wrong lyrics, save it, then in the
    terminal press:
+   
      1 = refresh (re-reads the file — use this after saving your edits)
+     
      2 = continue (locks in your corrections and moves on)
+     
      3 = cancel (press 3 again to confirm and abort)
+     
 i) Wait while the visualizer renders and the final video is encoded
 
 OUTPUT:
+
   video name_music_video.mp4 — your finished, YouTube-ready video
+  
   video name.srt — kept in the folder afterward, in case you want to reuse
                       or further edit it later
 
