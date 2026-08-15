@@ -82,6 +82,17 @@ To get other fonts:
   b) Extract the downloaded .zip
   c) Copy the .ttf file(s) into the "fonts" folder next to this script
      (skip files like OFL.txt / README.txt — only .ttf/.otf files are needed)
+     
+### 6. Background types
+
+The background can now be an image (jpg, png, webp, bmp, tiff, gif, svg) or
+a short video (mp4, mkv, mov, webm, avi, m4v). If you choose a video, it
+will simply loop for the entire length of the song — e.g. a 20-second
+driving clip will repeat seamlessly behind a 4-minute song.
+
+The center visualizer circle is always a static image — even if your
+background is a video, pick a still image for the center (or just press
+Enter to let it grab a clear frame from your background video automatically).
 
 ## PART 2: RUNNING
 
@@ -107,7 +118,8 @@ d) Pick a subtitle font from a random offer — press:
      1 = use it
      2 = try another random one
      3 = pick a specific font from the fonts/ folder by name
-e) Pick a background image (file dialog opens in the video's own folder)
+e) Pick a background — an image or a looping video (file dialog opens in
+   the video's own folder)
 f) Choose whether the center circle should use a different image (optional)
 g) Wait while it extracts audio and transcribes the lyrics
 h) EDIT PAUSE — open the generated .srt file (same folder, same name as your

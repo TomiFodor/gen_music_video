@@ -6,6 +6,7 @@
 # =============================================================================
 
 import os
+import io
 import sys
 import shutil
 import random
@@ -38,7 +39,7 @@ DEFAULT_MODEL = "medium"
 
 # --- Visualizer bar response ---
 NUM_BARS       = 280
-SMOOTHING      = 0.1             # lower = snappier, higher = laggier
+SMOOTHING      = 0.12            # lower = snappier, higher = laggier
 BAR_SCALE_LOW  = 1.0             # multiplier for lowest-frequency bar (bass) — no bass clipping
 BAR_SCALE_HIGH = 1.45            # multiplier for highest-frequency bar (treble)
 N_FFT          = 2048
@@ -84,8 +85,9 @@ SUB_MARGIN_V  = 70
 FADE_MS       = 200               # subtitle fade in/out duration (ms)
 FALLBACK_FONT = "Liberation Sans" # used if fonts/ is empty or missing
 
-SUPPORTED_VIDEO  = ['.mp4', '.mkv', '.mov', '.webm', '.avi', '.m4v']
-COVER_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
+# --- Supported file types ---
+SUPPORTED_VIDEO   = ['.mp4', '.mkv', '.mov', '.webm', '.avi', '.m4v']  # main input + background video
+IMAGE_EXTENSIONS  = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff', '.tif', '.gif', '.svg']
 
 # =============================================================================
 # --- USAGE / HELP ---
@@ -103,7 +105,8 @@ RUN:
 
 STEPS WHEN IT RUNS:
   1. Choose output resolution, then pick a subtitle font.
-  2. Pick a background image, and optionally a separate center-circle image.
+  2. Pick a background — an image (jpg/png/svg/etc) OR a short video that
+     will loop for the whole song. Optionally pick a separate center image.
   3. Audio is extracted and transcribed to a .srt file.
   4. EDIT PAUSE — open the .srt, fix any wrong lyrics, save, then:
        1 = refresh (re-read the file after saving)
@@ -117,19 +120,20 @@ FONTS:
   A random one is offered each run — you can cycle or pick a specific one.
   If the folder is empty, Liberation Sans Bold is used as a fallback.
 
+BACKGROUND TYPES:
+  Images: .jpg .jpeg .png .webp .bmp .tiff .gif .svg
+  Videos (looped): .mp4 .mkv .mov .webm .avi .m4v
+  The center visualizer circle is ALWAYS a static image (SVG included) —
+  it does not support video, even if the background does.
+
 OUTPUT:
   <video name>_music_video.mp4 — saved next to the input video.
   <video name>.srt is kept (not deleted) so you can re-use or re-edit it.
-
-SUPPORTED VIDEO:  .mp4 .mkv .mov .webm .avi .m4v
-SUPPORTED IMAGES: .jpg .jpeg .png .webp
 =============================================================
 """)
 
 # =============================================================================
 # --- FONT SELECTION ---
-# Scans fonts/ for .ttf/.otf, reads each font's real family name (not just the
-# filename), and lets the user cycle through a shuffled queue or pick by name.
 # =============================================================================
 
 def get_font_family_name(font_path):
@@ -144,10 +148,9 @@ def get_font_family_name(font_path):
         font.close()
     except Exception:
         pass
-    return Path(font_path).stem  # fallback: use filename
+    return Path(font_path).stem
 
 def scan_fonts(fonts_dir):
-    """Return a deduplicated list of {family, path, url} dicts from fonts_dir."""
     fonts, seen = [], set()
     if not fonts_dir.is_dir():
         return fonts
@@ -156,14 +159,13 @@ def scan_fonts(fonts_dir):
             continue
         family = get_font_family_name(f)
         if family in seen:
-            continue  # skip extra weights of a family already listed
+            continue
         seen.add(family)
         url = f"https://fonts.google.com/specimen/{family.replace(' ', '+')}"
         fonts.append({"family": family, "path": f, "url": url})
     return fonts
 
 def choose_font(fonts_dir):
-    """Interactive font picker. Returns (font_path, family_name)."""
     fonts = scan_fonts(fonts_dir)
     if not fonts:
         print(f"\n  No fonts found in: {fonts_dir}")
@@ -197,7 +199,7 @@ def choose_font(fonts_dir):
                 idx = 0
 
         elif choice == '3':
-            fonts = scan_fonts(fonts_dir)  # rescan in case a file was just added
+            fonts = scan_fonts(fonts_dir)
             print("\n  Available fonts:")
             for i, f in enumerate(fonts, 1):
                 print(f"    [{i}] {f['family']}")
@@ -229,7 +231,6 @@ def extract_audio(video_path, wav_path):
 # =============================================================================
 
 def transcribe(audio_path, model_size):
-    """Run Whisper on the audio and return (language, [segments])."""
     print(f"  Loading '{model_size}' model and analyzing audio...")
     try:
         model = WhisperModel(model_size, device="cuda", compute_type="float16")
@@ -239,8 +240,8 @@ def transcribe(audio_path, model_size):
 
     segments, info = model.transcribe(
         str(audio_path),
-        vad_filter=False,                   # avoids skipping lyrics over loud beats
-        condition_on_previous_text=False,   # stops one bad guess snowballing
+        vad_filter=False,
+        condition_on_previous_text=False,
         temperature=0.0,
         no_speech_threshold=0.6,
         compression_ratio_threshold=2.4,
@@ -257,7 +258,6 @@ def transcribe(audio_path, model_size):
     return info.language, segments_list
 
 def format_time(seconds):
-    """SRT timestamp: HH:MM:SS,mmm"""
     h = int(seconds // 3600)
     m = int((seconds % 3600) // 60)
     s = int(seconds % 60)
@@ -273,7 +273,6 @@ def write_srt(srt_path, segments):
 
 # =============================================================================
 # --- EDIT PAUSE ---
-# Holds the program so the user can hand-correct the .srt lyrics.
 # =============================================================================
 
 def wait_for_edits(srt_path):
@@ -310,12 +309,9 @@ def wait_for_edits(srt_path):
 
 # =============================================================================
 # --- SRT -> ASS CONVERSION ---
-# The edited .srt is parsed back and rebuilt as an .ass file so we can attach
-# a fade in/out tag and the chosen font/style to every line before burning.
 # =============================================================================
 
 def parse_srt(srt_path):
-    """Read a (possibly hand-edited) .srt back into (start, end, text) tuples."""
     segments = []
     blocks = Path(srt_path).read_text(encoding="utf-8").strip().split("\n\n")
     for block in blocks:
@@ -339,7 +335,6 @@ def seconds_to_ass_time(seconds):
     return f"{h:d}:{m:02d}:{s:05.2f}"
 
 def build_ass(segments, ass_path, font_family, width, height):
-    """Write an .ass subtitle file with the chosen style and per-line fades."""
     header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {width}
@@ -362,19 +357,66 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     Path(ass_path).write_text("".join(lines), encoding="utf-8")
 
 # =============================================================================
-# --- IMAGE SELECTION ---
-# Background image, plus an optional separate image for the center circle.
+# --- IMAGE LOADING (handles raster formats + SVG) ---
 # =============================================================================
 
-def select_cover_image(default_dir, video_path):
+def rasterize_svg(svg_path, target_size):
+    """Render an SVG to a PIL RGBA image at the given (width, height) via resvg_py."""
+    import resvg_py
+    svg_string = Path(svg_path).read_text(encoding="utf-8")
+    width, height = target_size if target_size else (WIDTH, HEIGHT)
+    try:
+        png_bytes = resvg_py.svg_to_bytes(svg_string=svg_string, width=width, height=height)
+    except TypeError:
+        # Older/newer API without width/height kwargs — render native, then resize.
+        png_bytes = resvg_py.svg_to_bytes(svg_string=svg_string)
+    img = Image.open(io.BytesIO(bytes(png_bytes))).convert("RGBA")
+    if img.size != (width, height):
+        img = img.resize((width, height), Image.LANCZOS)
+    return img
+
+def load_image_any(source, target_size=None):
+    """
+    Load an image from a path (any supported format, including SVG) or accept
+    an already-opened PIL Image directly. Returns an RGBA image, resized if
+    target_size is given.
+    """
+    if isinstance(source, Image.Image):
+        img = source.convert("RGBA")
+    else:
+        path = Path(source)
+        if path.suffix.lower() == '.svg':
+            img = rasterize_svg(path, target_size)
+        else:
+            img = Image.open(path).convert("RGBA")
+
+    if target_size and img.size != target_size:
+        img = img.resize(target_size, Image.LANCZOS)
+    return img
+
+# =============================================================================
+# --- BACKGROUND SOURCE SELECTION ---
+# Background may be a static image (any supported type) or a video that
+# loops for the full song duration. Center circle is always a static image.
+# =============================================================================
+
+def is_video_file(path):
+    return Path(path).suffix.lower() in SUPPORTED_VIDEO
+
+def select_background_source(default_dir, video_path):
+    """Prompt for a background image OR video. Returns a path, or None."""
     try:
         import tkinter as tk
         from tkinter import filedialog
         root = tk.Tk(); root.withdraw()
         path = filedialog.askopenfilename(
-            title="Select background image",
+            title="Select background image or video (loops if a video)",
             initialdir=default_dir,
-            filetypes=[("Images", "*.jpg *.jpeg *.png *.webp"), ("All files", "*.*")],
+            filetypes=[
+                ("Images", "*.jpg *.jpeg *.png *.webp *.bmp *.tiff *.gif *.svg"),
+                ("Videos", "*.mp4 *.mkv *.mov *.webm *.avi *.m4v"),
+                ("All files", "*.*"),
+            ],
         )
         root.destroy()
         if path:
@@ -382,20 +424,25 @@ def select_cover_image(default_dir, video_path):
     except Exception:
         pass
 
-    match = find_cover(video_path)
+    match = find_matching_file(video_path)
     if match:
-        print(f"  Using matching cover: {os.path.basename(match)}")
+        print(f"  Using matching file: {os.path.basename(match)}")
         return match
 
-    typed = input("  Image path (ENTER to skip): ").strip().strip("'\"")
+    typed = input("  Background path (ENTER to skip): ").strip().strip("'\"")
     return os.path.expanduser(typed) if typed else None
 
-def select_visualizer_image(default_dir, background_path):
-    """Optional separate image for the center circle. Defaults to background."""
+def select_visualizer_image(default_dir, background_path, background_is_video, fallback_image):
+    """Optional separate STATIC image for the center circle. Never a video."""
     print("\n  Center visualizer circle image:")
+    if background_is_video:
+        print("  (Background is a video — center circle needs a still image.)")
     use_alt = input("  Use a different image than the background? (y/N): ").strip().lower()
+
     if use_alt != 'y':
-        return background_path
+        # Background itself can't be used directly if it's a video —
+        # fall back to a frame already grabbed from it.
+        return fallback_image if background_is_video else background_path
 
     try:
         import tkinter as tk
@@ -404,36 +451,42 @@ def select_visualizer_image(default_dir, background_path):
         path = filedialog.askopenfilename(
             title="Select center visualizer image",
             initialdir=default_dir,
-            filetypes=[("Images", "*.jpg *.jpeg *.png *.webp"), ("All files", "*.*")],
+            filetypes=[("Images", "*.jpg *.jpeg *.png *.webp *.bmp *.tiff *.gif *.svg"), ("All files", "*.*")],
         )
         root.destroy()
-        return path if path else background_path
+        if path:
+            return path
     except Exception:
-        typed = input("  Path to center image (ENTER to reuse background): ").strip().strip("'\"")
-        if not typed:
-            return background_path
-        typed = os.path.expanduser(typed)
-        return typed if os.path.isfile(typed) else background_path
+        typed = input("  Path to center image (ENTER for default): ").strip().strip("'\"")
+        if typed:
+            typed = os.path.expanduser(typed)
+            if os.path.isfile(typed):
+                return typed
 
-def find_cover(video_path):
-    """Find an image next to the video sharing its base name."""
+    return fallback_image if background_is_video else background_path
+
+def find_matching_file(video_path):
+    """Find an image or video next to the input sharing its base name."""
     base = os.path.splitext(str(video_path))[0]
-    for ext in COVER_EXTENSIONS:
+    for ext in IMAGE_EXTENSIONS + SUPPORTED_VIDEO:
         for candidate in (base + ext, base + ext.upper()):
             if os.path.isfile(candidate):
                 return candidate
     return None
 
 # =============================================================================
-# --- BACKGROUND + CENTER CIRCLE PREP ---
+# --- BACKGROUND PREPARATION ---
+# Returns a dict: {'type': 'image', 'image': <RGB PIL>}
+#             or  {'type': 'video', 'frames': [sorted frame paths]}
 # =============================================================================
 
-def prepare_background(cover_path):
-    if cover_path and os.path.isfile(cover_path):
-        print(f"  Background image: {os.path.basename(cover_path)}")
-        bg = Image.open(cover_path).convert("RGBA").resize((WIDTH, HEIGHT), Image.LANCZOS)
+def prepare_background(background_path):
+    """Static image background: load, stretch to WxH, apply dark overlay."""
+    if background_path and os.path.isfile(background_path):
+        print(f"  Background image: {os.path.basename(background_path)}")
+        bg = load_image_any(background_path, target_size=(WIDTH, HEIGHT))
     else:
-        print("  No cover art — generating dark gradient background.")
+        print("  No background provided — generating dark gradient.")
         bg_array = np.zeros((HEIGHT, WIDTH, 4), dtype=np.uint8)
         for row in range(HEIGHT):
             val = int(20 * (1 - row / HEIGHT))
@@ -441,13 +494,62 @@ def prepare_background(cover_path):
         bg = Image.fromarray(bg_array, 'RGBA')
 
     overlay = Image.new("RGBA", (WIDTH, HEIGHT), OVERLAY_COLOR)
-    return Image.alpha_composite(bg, overlay).convert("RGB")
+    rgb = Image.alpha_composite(bg, overlay).convert("RGB")
+    return {"type": "image", "image": rgb}
 
-def prepare_cover_circle(cover_path):
+def prepare_background_video(video_path, frames_dir):
+    """
+    Extracts a looping background video into WxH frames at FPS, then darkens
+    each one. Frame 0 is saved separately BEFORE darkening, for use as a
+    fallback center-circle image (keeps it bright/clear, not dimmed).
+    Returns ({'type': 'video', 'frames': [...]}, first_frame_raw_path).
+    """
+    print(f"  Background video: {os.path.basename(video_path)} (will loop)")
+    os.makedirs(frames_dir, exist_ok=True)
+
+    cmd = [
+        "ffmpeg", "-y", "-i", str(video_path),
+        "-vf", f"scale={WIDTH}:{HEIGHT}",
+        "-r", str(FPS),
+        os.path.join(frames_dir, "bg_%06d.png"),
+    ]
+    subprocess.run(cmd, check=True, capture_output=True)
+
+    frame_paths = sorted(Path(frames_dir).glob("bg_*.png"))
+    if not frame_paths:
+        raise RuntimeError("No frames extracted from background video.")
+
+    # Keep an unmodified copy of the first frame for the center-circle fallback.
+    first_frame_raw_path = Path(frames_dir) / "_first_frame_raw.png"
+    shutil.copy(frame_paths[0], first_frame_raw_path)
+
+    # Darken every extracted frame in place so it matches the image path's look.
+    overlay = Image.new("RGBA", (WIDTH, HEIGHT), OVERLAY_COLOR)
+    for fp in tqdm(frame_paths, desc="  Darkening loop frames", unit="frame"):
+        frame = Image.open(fp).convert("RGBA")
+        frame = Image.alpha_composite(frame, overlay).convert("RGB")
+        frame.save(fp)
+
+    return {"type": "video", "frames": [str(p) for p in frame_paths]}, str(first_frame_raw_path)
+
+def get_background_frame(background, frame_idx):
+    """Fetch the correct background for this output frame (loops if video)."""
+    if background["type"] == "image":
+        return background["image"].copy().convert("RGBA")
+    frames = background["frames"]
+    path = frames[frame_idx % len(frames)]   # modulo = seamless loop
+    return Image.open(path).convert("RGBA")
+
+# =============================================================================
+# --- CENTER CIRCLE PREP (always a static image) ---
+# =============================================================================
+
+def prepare_cover_circle(source):
+    """Crop a source image into a circle with a neon ring for the center."""
     diameter = int(HEIGHT * COVER_R * 2)
 
-    if cover_path and os.path.isfile(cover_path):
-        img = Image.open(cover_path).convert("RGBA").resize((diameter, diameter), Image.LANCZOS)
+    if source and (isinstance(source, Image.Image) or os.path.isfile(source)):
+        img = load_image_any(source, target_size=(diameter, diameter))
     else:
         img = Image.new("RGBA", (diameter, diameter), (10, 10, 20, 255))
 
@@ -483,7 +585,6 @@ def analyze_audio(audio_path):
     num_freq_bins = stft_norm.shape[0]
     num_time_frames = stft_norm.shape[1]
 
-    # Log-spaced bin edges: bar index 0 = bass, bar index NUM_BARS-1 = treble
     log_bins = np.logspace(0, np.log10(num_freq_bins - 1), NUM_BARS + 1).astype(int)
     log_bins = np.clip(log_bins, 0, num_freq_bins - 1)
 
@@ -491,21 +592,18 @@ def analyze_audio(audio_path):
 
 # =============================================================================
 # --- FRAME RENDERING ---
-# Each frame = background + visualizer (transparent) + center cover circle.
+# Each frame = background (image or looped video frame) + visualizer + circle
 # =============================================================================
 
 def render_frames(stft_norm, log_bins, total_frames, num_time_frames,
-                  background_img, cover_circle, cover_x, cover_y, frames_dir):
+                  background, cover_circle, cover_x, cover_y, frames_dir):
 
     os.makedirs(frames_dir, exist_ok=True)
 
     cmap = plt.get_cmap('hsv')
     angles = np.linspace(0, 2 * np.pi, NUM_BARS, endpoint=False)
     bar_colors = [cmap(i / NUM_BARS) for i in range(NUM_BARS)]
-
-    # Per-bar scale multiplier: bass (index 0) barely boosted, treble boosted more.
-    # This is what stops the bass ring from slamming into a permanent max/clip.
-    bar_scales = np.linspace(BAR_SCALE_LOW, BAR_SCALE_HIGH, NUM_BARS)
+    bar_scales = np.linspace(BAR_SCALE_LOW, BAR_SCALE_HIGH, NUM_BARS)  # bass unboosted, treble boosted
 
     prev_bars = np.zeros(NUM_BARS)
 
@@ -533,7 +631,6 @@ def render_frames(stft_norm, log_bins, total_frames, num_time_frames,
         bars = np.clip(bars * bar_scales, 0, 1)
         prev_bars = bars.copy()
 
-        # Scale rings + ticks
         for ring_idx, ring_r in enumerate(SCALE_RINGS):
             num_ticks, tick_len, tick_alpha, tick_lw = TICK_CONFIGS[ring_idx]
             for ta in np.linspace(0, 2 * np.pi, num_ticks, endpoint=False):
@@ -542,12 +639,10 @@ def render_frames(stft_norm, log_bins, total_frames, num_time_frames,
                         color='white', alpha=tick_alpha, linewidth=tick_lw,
                         solid_capstyle='butt')
 
-        # Neon accent rings
         for ring_r, ring_color, ring_lw, ring_alpha in NEON_RINGS:
             ax.add_patch(plt.Circle((0, 0), ring_r, color=ring_color, fill=False,
                                     linewidth=ring_lw, alpha=ring_alpha))
 
-        # Bars: glow pass then sharp core pass
         bar_range = OUTER_R - INNER_R
         for i in range(NUM_BARS):
             angle, height = angles[i], bars[i]
@@ -567,7 +662,7 @@ def render_frames(stft_norm, log_bins, total_frames, num_time_frames,
         vis_path = os.path.join(frames_dir, "_vis_temp.png")
         fig.savefig(vis_path, dpi=DPI, transparent=True, facecolor='none')
 
-        frame = background_img.copy().convert("RGBA")
+        frame = get_background_frame(background, frame_idx)
         frame = Image.alpha_composite(frame, Image.open(vis_path).convert("RGBA"))
         if cover_circle is not None:
             frame.paste(cover_circle, (cover_x, cover_y), cover_circle)
@@ -663,13 +758,14 @@ def main():
     if "--model" in args:
         model_size = args[args.index("--model") + 1]
 
-    folder      = video_path.parent
-    stem        = video_path.stem
-    srt_path    = folder / f"{stem}.srt"
-    ass_path    = folder / f"_{stem}.ass"
-    wav_path    = folder / f"_audio_{stem}.wav"
-    frames_dir  = folder / f"_frames_{stem}"
-    output_path = folder / f"{stem}_music_video.mp4"
+    folder        = video_path.parent
+    stem          = video_path.stem
+    srt_path      = folder / f"{stem}.srt"
+    ass_path      = folder / f"_{stem}.ass"
+    wav_path      = folder / f"_audio_{stem}.wav"
+    frames_dir    = folder / f"_frames_{stem}"
+    bg_frames_dir = folder / f"_bgframes_{stem}"
+    output_path   = folder / f"{stem}_music_video.mp4"
 
     print("\n" + "="*60)
     print("  gen_music_video")
@@ -684,9 +780,19 @@ def main():
         WIDTH, HEIGHT = get_resolution_choice()
         font_path, font_family = choose_font(FONTS_DIR)
 
-        print("\n[Stage 2/6] Cover + visualizer image selection")
-        background_path = select_cover_image(str(folder), video_path)
-        visualizer_path = select_visualizer_image(str(folder), background_path)
+        print("\n[Stage 2/6] Background + visualizer image selection")
+        background_source = select_background_source(str(folder), video_path)
+        background_is_video = background_source and is_video_file(background_source)
+
+        if background_is_video:
+            background, first_frame_raw = prepare_background_video(background_source, str(bg_frames_dir))
+        else:
+            background = prepare_background(background_source)
+            first_frame_raw = None
+
+        visualizer_source = select_visualizer_image(
+            str(folder), background_source, background_is_video, first_frame_raw
+        )
 
         print("\n[Stage 3/6] Extracting audio and transcribing lyrics...")
         extract_audio(video_path, wav_path)
@@ -700,11 +806,10 @@ def main():
             return
 
         print("\n[Stage 5/6] Rendering visualizer frames...")
-        background_img = prepare_background(background_path)
-        cover_circle, cover_x, cover_y = prepare_cover_circle(visualizer_path)
+        cover_circle, cover_x, cover_y = prepare_cover_circle(visualizer_source)
         stft_norm, log_bins, total_frames, num_time_frames = analyze_audio(wav_path)
         render_frames(stft_norm, log_bins, total_frames, num_time_frames,
-                      background_img, cover_circle, cover_x, cover_y, str(frames_dir))
+                      background, cover_circle, cover_x, cover_y, str(frames_dir))
 
         print("\n[Stage 6/6] Encoding final video with burned subtitles...")
         corrected_segments = parse_srt(srt_path)
@@ -726,8 +831,9 @@ def main():
         traceback.print_exc()
     finally:
         # .srt is kept intentionally — everything else is temp working data.
-        if frames_dir.exists():
-            shutil.rmtree(frames_dir, ignore_errors=True)
+        for temp_dir in (frames_dir, bg_frames_dir):
+            if temp_dir.exists():
+                shutil.rmtree(temp_dir, ignore_errors=True)
         if wav_path.exists():
             wav_path.unlink()
         if ass_path.exists():
