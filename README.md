@@ -61,6 +61,21 @@ python -m venv venv && venv\Scripts\activate.bat
 
 You should see (venv) appear at the start of your terminal prompt.
 
+#### Fix GPU library path for faster-whisper
+Then on Linux, you need to fix GPU library path for faster-whisper
+```
+echo 'export LD_LIBRARY_PATH="$VIRTUAL_ENV/lib/python3.14/site-packages/nvidia/cublas/lib:$VIRTUAL_ENV/lib/python3.14/site-packages/nvidia/cudnn/lib:$LD_LIBRARY_PATH"' >> venv/bin/activate
+```
+
+(Replace `python3.14` with whatever version folder actually exists under
+`venv/lib/` — check with: `ls venv/lib`)
+
+Then re-activate the venv so the change takes effect:
+```
+deactivate
+source venv/bin/activate
+```
+
 ### 2. GPU support (optional — speeds up transcription only)
 
 This project uses faster-whisper, which runs on CTranslate2.
@@ -129,6 +144,11 @@ Or copy/paste the below, and drag/drop your video file in after:
 python gen_music_video.py 
 ```
 
+You can also load the large-v3 model (default is medium, which is actually pretty good) by typing:
+```
+python gen_music_video.py "your video.mp4" --model large-v3
+```
+
 c) Choose your output resolution (1080p or 720p)
 
 d) Pick a subtitle font from a random offer — press:
@@ -137,13 +157,13 @@ d) Pick a subtitle font from a random offer — press:
 - 3 = pick a specific font from the fonts/ folder by name
      
 e) Pick a background — an image or a looping video (file dialog opens in
-   the video's own folder)
+   the video's own folder) - add the word "background" in the file name for it to find it quickly
    
-f) Choose whether the center circle should use a different image (optional)
+f) Choose whether the center circle should use a different image (optional) - name it the same as your song for it to find it quickly
 
 g) Wait while it extracts audio and transcribes the lyrics
 
-h) EDIT PAUSE — open the generated .srt file in any text editor, fix wrong lyrics, save it, then in terminal press:
+h) EDIT PAUSE — open the generated .srt file in any text editor, fix wrong lyrics, fix the minor timing issues using a video viewer, watching the mp4 with subtitles on - use millisecond view or do it by ear, you will need to go through it several times, saving and relistening. Save it, then in terminal press:
 - 1 = refresh (re-reads the file — use this after saving your edits)
 - 2 = continue (locks in your corrections and moves on)
 - 3 = cancel (press 3 again to confirm and abort)

@@ -6,3 +6,5 @@ Pillow
 tqdm
 fonttools
 resvg_py
+nvidia-cublas-cu12
+nvidia-cudnn-cu12
